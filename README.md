@@ -1,8 +1,3 @@
-Got it 👍
-Here’s the **README.md** with a clear **structure section** included:
-
----
-
 # Project Setup Guide
 
 This project has two parts: **Frontend (Angular)** and **Backend (FastAPI + Gemini API)**.
