@@ -1,0 +1,159 @@
+<div class="h-screen bg-gray-50 flex flex-col overflow-hidden">
+  <!-- Header -->
+  <div class="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+          <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <h1 class="text-lg font-semibold text-gray-900">AI Document Assistant</h1>
+      </div>
+      
+      <!-- Document Info -->
+      <div class="flex items-center space-x-3" *ngIf="currentDocId">
+        <div class="flex items-center space-x-2 text-sm text-gray-600">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+          </svg>
+          <span class="font-medium">{{ uploadedFileName }}</span>
+        </div>
+        <button 
+          (click)="clearDocument()"
+          class="text-red-500 hover:text-red-700 p-1"
+          title="Remove document"
+        >
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Upload Button -->
+      <div *ngIf="!currentDocId" class="flex items-center space-x-2">
+        <label for="file-input" class="cursor-pointer inline-flex items-center px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-md transition-colors">
+          <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+          Choose PDF
+        </label>
+        <input 
+          type="file" 
+          id="file-input" 
+          accept=".pdf" 
+          (change)="onFileSelected($event)"
+          class="hidden"
+        >
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Loading -->
+  <div class="bg-purple-50 border-b border-purple-200 px-4 py-3 flex-shrink-0" *ngIf="isUploading">
+    <div class="max-w-4xl mx-auto flex items-center space-x-3">
+      <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+      <span class="text-sm text-purple-700">Uploading and processing document...</span>
+    </div>
+  </div>
+
+  <!-- Chat Container -->
+  <div class="flex-1 flex flex-col max-w-4xl mx-auto w-full min-h-0">
+    <!-- Chat Messages -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+      <!-- Welcome Message -->
+      <div class="flex justify-center items-center h-full" *ngIf="messages.length === 0 && !isUploading && !currentDocId">
+        <div class="bg-white rounded-lg p-8 shadow-sm border max-w-md">
+          <div class="text-center">
+            <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+              </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Welcome to AI Document Assistant</h3>
+            <p class="text-sm text-gray-500 mb-4">Upload a PDF document to start asking questions about its content.</p>
+            <div class="text-xs text-gray-400">
+              <p>• Upload PDF files up to 10MB</p>
+              <p>• Ask questions about the document content</p>
+              <p>• Get AI-powered answers with references</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div 
+        *ngFor="let message of messages" 
+        class="flex"
+        [ngClass]="{'justify-end': message.type === 'user', 'justify-start': message.type === 'assistant'}"
+      >
+        <div 
+          class="max-w-xs lg:max-w-md px-3 py-2 rounded-lg text-sm"
+          [ngClass]="{
+            'bg-purple-600 text-white': message.type === 'user',
+            'bg-white border border-gray-200 text-gray-800': message.type === 'assistant'
+          }"
+        >
+          <div 
+            class="prose prose-sm max-w-none"
+            [ngClass]="{'prose-purple': message.isMarkdown, 'prose-invert': message.type === 'user'}"
+            [innerHTML]="message.isMarkdown ? message.content : message.content"
+          ></div>
+          <div class="text-xs opacity-70 mt-1" [ngClass]="{'text-purple-100': message.type === 'user', 'text-gray-500': message.type === 'assistant'}">
+            {{ formatTime(message.timestamp) }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Upload Processing Message -->
+      <div class="flex justify-center" *ngIf="isUploading">
+        <div class="bg-white rounded-lg p-4 shadow-sm border max-w-md">
+          <div class="text-center">
+            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+            </div>
+            <h3 class="text-sm font-medium text-gray-900 mb-1">Processing Document</h3>
+            <p class="text-xs text-gray-500">Please wait while we analyze your PDF...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Typing Indicator -->
+      <div class="flex justify-start" *ngIf="isAsking">
+        <div class="bg-white border border-gray-200 rounded-lg px-3 py-2">
+          <div class="flex items-center space-x-1">
+            <div class="flex space-x-1">
+              <div class="w-2 h-2 bg-purple-600 rounded-full animate-bounce"></div>
+              <div class="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+              <div class="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            </div>
+            <span class="text-xs text-gray-500 ml-2">Thinking...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Section -->
+    <div class="border-t border-gray-200 p-4 flex-shrink-0" *ngIf="currentDocId">
+      <div class="flex space-x-2">
+        <textarea
+          [(ngModel)]="currentQuestion"
+          placeholder="Ask a question about the document..."
+          class="flex-1 p-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-purple-500 focus:border-purple-500 resize-none"
+          rows="1"
+          (keydown.enter)="askQuestion()"
+          [disabled]="isAsking"
+        ></textarea>
+        <button 
+          class="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white text-sm rounded-md transition-colors"
+          (click)="askQuestion()" 
+          [disabled]="!currentQuestion.trim() || isAsking"
+        >
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
